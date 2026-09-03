@@ -83,27 +83,21 @@ class WindowsSensorReader:
     def __init__(self):
         self._start_time = time.time()
         self._base_voltage = 4.1
-        self._voltage_drift_rate = -0.0001  # Slow discharge
-        self._cooling_decrement = 0.0  # Track cooling offset
-        self._last_temp_reading = 40.0
+        self._voltage_drift_rate = -0.0001  
+        self._cooling_decrement = 0.0  
+        self._current_temp = 40.0 # Track physical state over time
 
     def get_metrics(self) -> dict:
-        """Generate realistic mock sensor data."""
         elapsed = time.time() - self._start_time
 
-        # Temperature simulation: 38-48°C with drift under load
-        # Base noise: ±2°C, drift: +0.005°C per second
-        noise = random.gauss(0, 1.5)
-        drift = elapsed * 0.005
-        temperature = 40.0 + noise + drift - self._cooling_decrement
-
-        # Clamp to realistic range
+        # Smooth Random Walk: Heat climbs steadily under load with minor fluctuations
+        self._current_temp += random.uniform(-0.02, 0.08)
+        
+        temperature = self._current_temp - self._cooling_decrement
         temperature = max(38.0, min(48.0, temperature))
-        self._last_temp_reading = temperature
 
-        # Voltage simulation: Starts at 4.1V, slowly discharges
         voltage = self._base_voltage + (self._voltage_drift_rate * elapsed)
-        voltage = max(3.7, min(4.2, voltage))  # Li-ion range
+        voltage = max(3.7, min(4.2, voltage)) 
 
         return {
             "temperature": round(temperature, 2),

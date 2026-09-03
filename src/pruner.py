@@ -50,12 +50,26 @@ class Pruner:
         """Bind SNN engine to pruner for pause/resume control."""
         self._snn_engine = engine
 
+    def bind_sensor_pool(self, pool: SensorPool) -> None:
+        """Bind a shared sensor pool to prevent duplicate sensor reads."""
+        self._sensor_pool = pool
+        if hasattr(self._sensor_pool, "_reader"):
+            if isinstance(self._sensor_pool._reader, WindowsSensorReader):
+                self._windows_reader = self._sensor_pool._reader
     def start(self) -> None:
         """Start the pruning monitoring loop."""
         if self._running:
             return
         self._running = True
-        self._sensor_pool = SensorPool(polling_interval_ms=self.polling_interval_ms)
+        
+        # Only create a new pool if one was not injected by the main app
+        if self._sensor_pool is None:
+            self._sensor_pool = SensorPool(polling_interval_ms=self.polling_interval_ms)
+            if hasattr(self._sensor_pool, "_reader"):
+                if isinstance(self._sensor_pool._reader, WindowsSensorReader):
+                    self._windows_reader = self._sensor_pool._reader
+
+        self._monitor_task = asyncio.create_task(self._monitor_loop())
 
         # Capture Windows sensor for cooling simulation
         if hasattr(self._sensor_pool, "_reader"):

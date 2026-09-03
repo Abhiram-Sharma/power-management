@@ -67,9 +67,10 @@ class ApplicationState:
         self.pruner: Pruner = Pruner(
             temperature_threshold=45.0,
             pruning_percentage=0.20,
-            polling_interval_ms=100,
+            polling_interval_ms=10, # Changed from 100 to match telemetry
         )
         self.pruner.bind_snn_engine(self.snn_engine)
+        self.pruner.bind_sensor_pool(self.sensor_pool) # Inject the shared pool
 
         # WebSocket connections
         self.active_connections: List[WebSocket] = []
